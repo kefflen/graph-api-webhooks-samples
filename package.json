@@ -12,11 +12,7 @@
     "express": "~4.13.3",
     "express-handlebars": "^6.0.6",
     "express-x-hub": "^1.0.4",
-    "nodemon": "^2.0.19",
     "socket.io": "^4.5.1"
-  },
-  "engines": {
-    "node": "0.12.7"
   },
   "repository": {
     "type": "git",
@@ -29,5 +25,8 @@
     "graph api"
   ],
   "license": "https://github.com/fbsamples/graph-api-webhooks-samples/blob/master/LICENSE",
-  "bugs": "https://github.com/fbsamples/graph-api-webhooks-samples/issues"
+  "bugs": "https://github.com/fbsamples/graph-api-webhooks-samples/issues",
+  "devDependencies": {
+    "nodemon": "^2.0.19"
+  }
 }
