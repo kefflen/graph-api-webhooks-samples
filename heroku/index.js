@@ -6,33 +6,43 @@
  * LICENSE file in the root directory of this source tree.
  */
 const { engine } = require('express-handlebars');
-var bodyParser = require('body-parser');
-var express = require('express');
-var app = express();
-var xhub = require('express-x-hub');
+const http = require('http')
+const { Server } = require('socket.io')
+const bodyParser = require('body-parser');
+const express = require('express');
+const app = express();
+const xhub = require('express-x-hub');
+
+const server = http.createServer(app)
+const io = new Server(server)
+
+io.on('connection', (data => {
+  console.log('Connected: ' + data.id)
+}))
+
+
 
 app.engine('handlebars', engine())
 app.set('view engine', 'handlebars')
 app.set('views', './heroku/views')
 
 app.set('port', (process.env.PORT || 5000));
-app.listen(app.get('port'));
 
 app.use(xhub({ algorithm: 'sha1', secret: process.env.APP_SECRET }));
 app.use(bodyParser.json());
 
-var token = process.env.TOKEN || 'token';
-var received_updates = [];
+const token = process.env.TOKEN || 'token';
+const received_updates = [];
 
 app.get('/', function(req, res) {
-  console.log(req);
   res.render('index', {
     receivedUpdates: JSON.stringify(received_updates, null, 2)
   })
-  // res.send('<pre>' + JSON.stringify(received_updates, null, 2) + '</pre>');
 });
 
+
 app.get(['/facebook', '/instagram'], function(req, res) {
+  emitUpdate(req)
   if (
     req.query['hub.mode'] == 'subscribe' &&
     req.query['hub.verify_token'] == token
@@ -45,7 +55,7 @@ app.get(['/facebook', '/instagram'], function(req, res) {
 
 app.post('/facebook', function(req, res) {
   console.log('Facebook request body:', req.body);
-
+  emitUpdate(req)
   if (!req.isXHubValid()) {
     console.log('Warning - request header X-Hub-Signature not present or invalid');
     res.sendStatus(401);
@@ -59,11 +69,26 @@ app.post('/facebook', function(req, res) {
 });
 
 app.post('/instagram', function(req, res) {
+  emitUpdate(req)
   console.log('Instagram request body:');
-  console.log(req.body);
   // Process the Instagram updates here
   received_updates.unshift(req.body);
   res.sendStatus(200);
 });
 
-app.listen();
+server.listen(app.get('port'));
+
+app.use('/', (req, res) => {
+  emitUpdate(req);
+  return res.send()
+})
+
+function emitUpdate(req) {
+  io.emit('update', {
+    route: {
+      method: req.method,
+      path: req.url
+    },
+    data: req.body
+  });
+}
